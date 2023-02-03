@@ -2,10 +2,11 @@ const express = require('express')
 const cors = require('cors')
 const jwt = require('jsonwebtoken')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
+const nodemailer = require('nodemailer');
 require('dotenv').config()
 
 const app = express()
-const port = process.env.PORT || 8000
+const port = process.env.PORT || 10000
 
 // middlewares
 app.use(cors())
@@ -29,6 +30,35 @@ app.use(express.json())
 //     next()
 //   })
 // }
+
+// Send Email
+const sendMail = (emailData, email) => {
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.PASS
+    }
+  })
+
+  const mailOptions = {
+    from: process.env.EMAIL,
+    to: email,
+    subject: emailData?.subject,
+    html: `<p>${emailData?.message}</p>`
+  }
+
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log('Email sent: ' + info.response);
+
+    }
+  })
+
+}
 
 // Database Connection
 const uri = process.env.DB_URI
@@ -121,11 +151,17 @@ async function run() {
       res.send(result)
     })
 
-    //Save a booking
+    //Save a bookings
     app.post('/bookings', async (req, res) => {
       const bookingData = req.body
       const result = await bookingsCollection.insertOne(bookingData)
       console.log(result);
+      sendMail(
+        {
+          subject: 'Booking Successful!', message: `Booking Id: ${result?.insertedId}`
+        },
+        bookings?.guestEmail
+      )
       res.send(result)
     })
 
