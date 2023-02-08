@@ -160,7 +160,7 @@ async function run() {
         {
           subject: 'Booking Successful!', message: `Booking Id: ${result?.insertedId}`
         },
-        bookings?.guestEmail
+        bookingData?.guestEmail
       )
       res.send(result)
     })
