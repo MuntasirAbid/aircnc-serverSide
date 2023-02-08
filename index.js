@@ -179,6 +179,14 @@ async function run() {
       res.send(bookings)
     })
 
+    // Cancel booking
+    app.delete('/booking/:id', async (req, res) => {
+      const id = req.params.id
+      const query = { _id: ObjectId(id) }
+      const result = bookingsCollection.deleteOne(query)
+      res.send(result)
+    })
+
 
 
     console.log('Database Connected...')
