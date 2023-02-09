@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 const nodemailer = require('nodemailer');
 require('dotenv').config()
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
 const app = express()
 const port = process.env.PORT || 10000
@@ -89,7 +90,7 @@ async function run() {
       const token = jwt.sign(user, process.env.ACCESS_TOKEN, {
         expiresIn: '1y',
       })
-      console.log(token)
+
       res.send({ result, token })
     })
 
@@ -155,7 +156,7 @@ async function run() {
     app.post('/bookings', async (req, res) => {
       const bookingData = req.body
       const result = await bookingsCollection.insertOne(bookingData)
-      console.log(result);
+
       sendMail(
         {
           subject: 'Booking Successful!', message: `Booking Id: ${result?.insertedId}`
@@ -163,6 +164,24 @@ async function run() {
         bookingData?.guestEmail
       )
       res.send(result)
+    })
+
+    // Create payment 
+    app.post('/create-payment-intent', async (req, res) => {
+
+      const price = req.body.price
+      const amount = parseFloat(price) * 100
+
+      try {
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: amount,
+          currency: 'usd',
+          payment_method_types: ['card'],
+        })
+        res.send({ clientSecret: paymentIntent.client_secret })
+      } catch (error) {
+        console.log(error);
+      }
     })
 
     //get all bookings by email
@@ -183,7 +202,7 @@ async function run() {
     app.delete('/booking/:id', async (req, res) => {
       const id = req.params.id
       const query = { _id: ObjectId(id) }
-      const result = bookingsCollection.deleteOne(query)
+      const result = await bookingsCollection.deleteOne(query)
       res.send(result)
     })
 
