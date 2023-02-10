@@ -14,23 +14,23 @@ app.use(cors())
 app.use(express.json())
 
 // Decode JWT
-// function verifyJWT(req, res, next) {
-//   const authHeader = req.headers.authorization
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization
 
-//   if (!authHeader) {
-//     return res.status(401).send({ message: 'unauthorized access' })
-//   }
-//   const token = authHeader.split(' ')[1]
+  if (!authHeader) {
+    return res.status(401).send({ message: 'unauthorized access' })
+  }
+  const token = authHeader.split(' ')[1]
 
-//   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
-//     if (err) {
-//       return res.status(403).send({ message: 'Forbidden access' })
-//     }
-//     console.log(decoded)
-//     req.decoded = decoded
-//     next()
-//   })
-// }
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: 'Forbidden access' })
+    }
+    console.log(decoded)
+    req.decoded = decoded
+    next()
+  })
+}
 
 // Send Email
 const sendMail = (emailData, email) => {
@@ -145,6 +145,28 @@ async function run() {
       res.send(home)
     })
 
+    // Delete a home
+    app.delete('/home/:id', verifyJWT, async (req, res) => {
+      const id = req.params.id
+      const query = { _id: ObjectId(id) }
+      const result = await homesCollection.deleteOne(query)
+      res.send(result)
+    })
+
+    // Update A Home
+    app.put('/homes', verifyJWT, async (req, res) => {
+      const home = req.body
+      console.log(home)
+
+      const filter = {}
+      const options = { upsert: true }
+      const updateDoc = {
+        $set: home,
+      }
+      const result = await homesCollection.updateOne(filter, updateDoc, options)
+      res.send(result)
+    })
+
     //Post a home
     app.post('/homes', async (req, res) => {
       const homes = req.body
@@ -159,7 +181,8 @@ async function run() {
 
       sendMail(
         {
-          subject: 'Booking Successful!', message: `Booking Id: ${result?.insertedId}`
+          subject: 'Booking Successful!',
+          message: `Booking Id: ${result?.insertedId}, TransactionId: ${booking.transactionId}`
         },
         bookingData?.guestEmail
       )
