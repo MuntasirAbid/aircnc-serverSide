@@ -146,7 +146,7 @@ async function run() {
     })
 
     // Delete a home
-    app.delete('/home/:id', verifyJWT, async (req, res) => {
+    app.delete('/home/:id', async (req, res) => {
       const id = req.params.id
       const query = { _id: ObjectId(id) }
       const result = await homesCollection.deleteOne(query)
@@ -154,7 +154,7 @@ async function run() {
     })
 
     // Update A Home
-    app.put('/homes', verifyJWT, async (req, res) => {
+    app.put('/homes', async (req, res) => {
       const home = req.body
       console.log(home)
 
@@ -176,15 +176,15 @@ async function run() {
 
     //Save a bookings
     app.post('/bookings', async (req, res) => {
-      const bookingData = req.body
-      const result = await bookingsCollection.insertOne(bookingData)
+      const booking = req.body
+      const result = await bookingsCollection.insertOne(booking)
 
       sendMail(
         {
           subject: 'Booking Successful!',
           message: `Booking Id: ${result?.insertedId}, TransactionId: ${booking.transactionId}`
         },
-        bookingData?.guestEmail
+        booking?.guestEmail
       )
       res.send(result)
     })
