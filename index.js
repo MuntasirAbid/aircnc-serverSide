@@ -22,7 +22,7 @@ function verifyJWT(req, res, next) {
   }
   const token = authHeader.split(' ')[1]
 
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
     if (err) {
       return res.status(403).send({ message: 'Forbidden access' })
     }
@@ -75,6 +75,19 @@ async function run() {
     const usersCollection = client.db('aircnc-db').collection('users')
     const bookingsCollection = client.db('aircnc-db').collection('bookings')
 
+    // Verify Admin
+    const verifyAdmin = async (req, res, next) => {
+      const decodedEmail = req.decoded.email
+      const query = { email: decodedEmail }
+      const user = await usersCollection.findOne(query)
+
+      if (user?.role !== 'admin') {
+        return res.status(403).send({ message: 'forbidden access' })
+      }
+      console.log('Admin true')
+      next()
+    }
+
     //save user email and generate JWT
     app.put('/user/:email', async (req, res) => {
       const email = req.params.email
@@ -95,7 +108,6 @@ async function run() {
     })
 
     //Get all users
-
     app.get('/users', verifyJWT, async (req, res) => {
 
       const users = await usersCollection.find().toArray()
@@ -108,7 +120,7 @@ async function run() {
       const email = req.params.email
 
       const decodedEmail = req.decoded.email
-
+      console.log(decodedEmail);
       if (email !== decodedEmail) {
         return res.status(403).send({ message: 'forbidden access' })
       }
@@ -227,7 +239,7 @@ async function run() {
     })
 
     // Create payment 
-    app.post('/create-payment-intent', async (req, res) => {
+    app.post('/create-payment-intent', verifyJWT, async (req, res) => {
 
       const price = req.body.price
       const amount = parseFloat(price) * 100
